@@ -3,7 +3,28 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
-import 'home_screen.dart';
+import 'intro/intro_screen.dart';
+
+// ── Splash Screen ─────────────────────────────────────────────────────────────
+// Entry animation before the onboarding flow.
+//
+// ── Responsive strategy (per flutter-build-responsive-layout skill) ───────────
+// All sizing is driven by LayoutBuilder constraints — never raw MediaQuery width.
+// Four breakpoints keep proportions harmonious at every window size:
+//
+//   small   < 360 px   — compact phones
+//   mobile  360–600    — standard phones  ← default
+//   tablet  600–1024   — tablets / large phones
+//   wide    ≥ 1024     — desktop / landscape tablet
+//
+// On wide screens the content column is constrained to maxWidth=520 and centered
+// so elements never stretch across the full window.
+//
+// ── Animation ─────────────────────────────────────────────────────────────────
+//   _rotationAnim : 0 → 360° (logo circle spin, first 65% of timeline)
+//   _scaleAnim    : 0.78 → 1.0 (logo pop-in, first 50%)
+//   _fadeAnim     : 0.0 → 1.0 (all content, first 30%)
+//   Duration: 1600ms total → navigate after 2600ms
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,10 +35,10 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _rotationAnim;
-  late Animation<double> _fadeAnim;
-  late Animation<double> _scaleAnim;
+  late final AnimationController _controller;
+  late final Animation<double> _rotationAnim;
+  late final Animation<double> _fadeAnim;
+  late final Animation<double> _scaleAnim;
 
   @override
   void initState() {
@@ -36,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Fade in fast, done by 30%
+    // Fade all content in fast — done by 30%
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -44,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Scale: grows from 0.78 to 1.0
+    // Logo pops in: 0.78 → 1.0
     _scaleAnim = Tween<double>(begin: 0.78, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -53,15 +74,14 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-
-    Future.delayed(const Duration(milliseconds: 2600), _navigateToHome);
+    Future.delayed(const Duration(milliseconds: 2600), _navigateToIntro);
   }
 
-  void _navigateToHome() {
+  void _navigateToIntro() {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeScreen(),
+        pageBuilder: (_, __, ___) => const IntroScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 500),
@@ -77,20 +97,60 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Responsive sizing based on screen width
-    final screenWidth = MediaQuery.of(context).size.width;
-    final logoSize = (screenWidth * 0.285).clamp(96.0, 130.0);
-    final iconSize = logoSize * 0.46;
-
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: Column(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // ── Breakpoints ─────────────────────────────────────────────────────
+          final w = constraints.maxWidth;
+          final isWide   = w >= 1024;
+          final isTablet = w >= 600;
+          final isSmall  = w < 360;
+
+          // ── Size tokens — all proportionally matched per breakpoint ─────────
+          // Logo circle diameter
+          final double logoSize = isWide   ? 180.0
+              : isTablet ? 150.0
+              : isSmall  ?  80.0
+              :             110.0;
+
+          // Icon inside logo circle (always 46% of circle)
+          final double iconSize = logoSize * 0.46;
+
+          // Title "Barber Shop"
+          final double titleSize = isWide   ? 38.0
+              : isTablet ? 30.0
+              : isSmall  ? 20.0
+              :             25.0;
+
+          // Subtitle "آرایشگاه آنلاین"
+          final double subSize = isWide   ? 17.0
+              : isTablet ? 15.0
+              : isSmall  ? 11.0
+              :             13.0;
+
+          // Letter spacing scales with title size to stay proportional
+          final double letterSpacing = isWide   ? 14.0
+              : isTablet ? 11.0
+              : isSmall  ?  5.0
+              :              8.0;
+
+          // Gap between logo and title
+          final double logoTitleGap = isWide   ? 52.0
+              : isTablet ? 40.0
+              : isSmall  ? 20.0
+              :             28.0;
+
+          // Gap between title and subtitle
+          final double titleSubGap = isWide   ? 14.0
+              : isTablet ? 12.0
+              :              8.0;
+
+          // ── Content column — constrained on wide screens ────────────────────
+          final content = Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Animated logo ───────────────────────────────
+              // ── Animated logo circle ────────────────────────────────────────
               ScaleTransition(
                 scale: _scaleAnim,
                 child: RepaintBoundary(
@@ -100,36 +160,34 @@ class _SplashScreenState extends State<SplashScreen>
                       angle: _rotationAnim.value,
                       child: child,
                     ),
-                    child: _LogoCircle(
-                      size: logoSize,
-                      iconSize: iconSize,
-                    ),
+                    child: _LogoCircle(size: logoSize, iconSize: iconSize),
                   ),
                 ),
               ),
 
-              SizedBox(height: screenWidth * 0.07),
+              SizedBox(height: logoTitleGap),
 
-              // ── BARBR wordmark ──────────────────────────────
+              // ── Brand name ──────────────────────────────────────────────────
               Text(
                 'Barber Shop',
                 style: TextStyle(
                   fontFamily: 'Vazirmatn',
-                  fontSize: screenWidth * 0.072,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.w800,
                   color: AppColors.gold,
-                  letterSpacing: 10,
+                  letterSpacing: letterSpacing,
+                  height: 1.0,
                 ),
               ),
 
-              const SizedBox(height: 10),
+              SizedBox(height: titleSubGap),
 
-              // ── Tagline فارسی ───────────────────────────────
-              const Text(
+              // ── Persian tagline ─────────────────────────────────────────────
+              Text(
                 'آرایشگاه آنلاین',
                 style: TextStyle(
                   fontFamily: 'Vazirmatn',
-                  fontSize: 13,
+                  fontSize: subSize,
                   fontWeight: FontWeight.w400,
                   color: AppColors.textHint,
                   letterSpacing: 1.5,
@@ -137,15 +195,29 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
             ],
-          ),
-        ),
+          );
+
+          return Center(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              // On wide screens: cap width so content never spreads unnaturally
+              child: isWide || isTablet
+                  ? ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: content,
+                    )
+                  : content,
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-// ── Logo Circle ──────────────────────────────────────────────────────────────
-// RepaintBoundary is set on the parent; this widget itself is const-safe.
+// ── Logo Circle ───────────────────────────────────────────────────────────────
+// The animated rotating circle with scissors icon inside.
+// RepaintBoundary is on the parent (AnimatedBuilder child) for paint isolation.
 
 class _LogoCircle extends StatelessWidget {
   final double size;
@@ -160,26 +232,21 @@ class _LogoCircle extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        // Simple radial gradient — avoids expensive gradients during rotation
         gradient: const RadialGradient(
           colors: [Color(0xFF252525), Color(0xFF141414)],
           center: Alignment(-0.3, -0.3),
           radius: 1.1,
         ),
-        // Thin gold border — premium feel
         border: Border.all(
           color: AppColors.gold.withOpacity(0.45),
           width: 1.5,
         ),
         boxShadow: [
-          // Outer glow — subtle, not expensive
           BoxShadow(
             color: AppColors.gold.withOpacity(0.12),
             blurRadius: 24,
             spreadRadius: 0,
-            offset: Offset.zero,
           ),
-          // Depth shadow — ground the circle
           BoxShadow(
             color: Colors.black.withOpacity(0.55),
             blurRadius: 20,
@@ -189,16 +256,15 @@ class _LogoCircle extends StatelessWidget {
         ],
       ),
       child: CustomPaint(
-        painter: _ScissorsPainter(
-          color: AppColors.gold,
-          size: iconSize,
-        ),
+        painter: _ScissorsPainter(color: AppColors.gold, size: iconSize),
       ),
     );
   }
 }
 
-// ── Scissors Painter ─────────────────────────────────────────────────────────
+// ── Scissors Painter ──────────────────────────────────────────────────────────
+// All coordinates are relative to [size] so the icon scales correctly at any
+// logo diameter without changes to this painter.
 
 class _ScissorsPainter extends CustomPainter {
   final Color color;
@@ -210,11 +276,14 @@ class _ScissorsPainter extends CustomPainter {
   void paint(Canvas canvas, Size canvasSize) {
     final cx = canvasSize.width / 2;
     final cy = canvasSize.height / 2;
-    final r = size / 2;
+    final r  = size / 2;
+
+    // Stroke width scales with icon size for visual consistency
+    final strokeW = (size * 0.042).clamp(1.8, 3.0);
 
     final linePaint = Paint()
       ..color = color
-      ..strokeWidth = 2.2
+      ..strokeWidth = strokeW
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
@@ -222,8 +291,8 @@ class _ScissorsPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Center pivot dot
-    canvas.drawCircle(Offset(cx, cy), 3.2, dotPaint);
+    // Center pivot dot — scales with icon
+    canvas.drawCircle(Offset(cx, cy), (size * 0.055).clamp(2.0, 4.0), dotPaint);
 
     // Blade 1: top-left → bottom-right
     canvas.drawLine(
@@ -240,16 +309,9 @@ class _ScissorsPainter extends CustomPainter {
     );
 
     // Handle rings
-    canvas.drawCircle(
-      Offset(cx - r * 0.96, cy - r * 0.98),
-      r * 0.32,
-      linePaint,
-    );
-    canvas.drawCircle(
-      Offset(cx - r * 0.96, cy + r * 0.98),
-      r * 0.32,
-      linePaint,
-    );
+    final ringR = (r * 0.32).clamp(6.0, 22.0);
+    canvas.drawCircle(Offset(cx - r * 0.96, cy - r * 0.98), ringR, linePaint);
+    canvas.drawCircle(Offset(cx - r * 0.96, cy + r * 0.98), ringR, linePaint);
   }
 
   @override
