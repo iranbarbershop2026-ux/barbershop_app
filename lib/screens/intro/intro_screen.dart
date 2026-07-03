@@ -1,8 +1,8 @@
+import 'package:barbershop_app/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../home_screen.dart';
 import 'intro_page.dart';
 import 'intro_page_data.dart';
 import 'widgets/intro_indicator.dart';
@@ -59,7 +59,7 @@ class _IntroScreenState extends State<IntroScreen>
   // Derived from the data list — adding a page there automatically updates the flow.
   static final int _total = IntroPageData.pages.length;
   static const _pageDuration = Duration(milliseconds: 480);
-  static const _textDelay    = Duration(milliseconds: 250);
+  static const _textDelay = Duration(milliseconds: 250);
   static const _textDuration = Duration(milliseconds: 380);
 
   /// Pages whose text animation has already played at least once.
@@ -139,7 +139,7 @@ class _IntroScreenState extends State<IntroScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeScreen(),
+        pageBuilder: (_, __, ___) => const LoginScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 400),
@@ -275,7 +275,9 @@ class _BottomBar extends StatelessWidget {
     final isLast = page == total - 1;
 
     return SizedBox(
-      height: isTablet ? IntroPage.bottomBarHeightTablet : IntroPage.bottomBarHeight,
+      height: isTablet
+          ? IntroPage.bottomBarHeightTablet
+          : IntroPage.bottomBarHeight,
       child: Directionality(
         textDirection: TextDirection.ltr,
         child: Padding(
