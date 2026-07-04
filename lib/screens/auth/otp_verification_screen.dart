@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:barbershop_app/screens/customer_home_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -123,11 +124,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _onVerify() {
-    if (_filledCount < _codeLength) return; // button guard
-    // TODO: real verify call — simulate error for now
-    setState(() {
-      _errorMessage = 'کد وارد شده صحیح نیست. لطفاً دوباره امتحان کنید.';
-    });
+    if (_filledCount < _codeLength) return;
+    // TODO: wire to real OTP verification API.
+    // For now, navigate directly to HomeScreen (design phase).
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder<void>(
+        pageBuilder: (_, __, ___) => const CustomerHomeScreen(),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 380),
+      ),
+      (route) => false, // clear the entire auth stack
+    );
   }
 
   String get _timerLabel {
@@ -240,11 +249,11 @@ class _BackRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.chevron_left_rounded,
                 size: 20, color: AppColors.textSecondary),
             SizedBox(width: 2),
