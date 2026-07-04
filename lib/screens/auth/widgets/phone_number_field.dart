@@ -1,32 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/data/countries.dart';
 import '../../../core/theme/app_theme.dart';
 
 // ── Phone Number Field ────────────────────────────────────────────────────────
-// Numbers read left-to-right even inside an RTL app, so this field forces
-// LTR internally (via a local Directionality override) regardless of the
-// screen's overall direction. Layout, left → right:
-//
-//   [ 🇮🇷 +98 ▾ | 9121234567_______________ ]
-//     ^ tap opens a small anchored dropdown (not a full sheet) with the
-//       country list — see _pickCountry below.
-//
-// Design only — the composed number isn't read/submitted anywhere yet.
+// Forces LTR internally. Auto-formats digits as: XXX XXX XXXX (Iranian style).
+// The formatter inserts spaces after the 3rd and 6th digit automatically.
+// The controller's raw text (with spaces) is passed up — callers should strip
+// spaces before composing the final number for display/submission.
 
 class PhoneNumberField extends StatefulWidget {
-  const PhoneNumberField({super.key});
+  final TextEditingController? controller;
+  final ValueChanged<Country>? onCountryChanged;
+
+  const PhoneNumberField({super.key, this.controller, this.onCountryChanged});
 
   @override
   State<PhoneNumberField> createState() => _PhoneNumberFieldState();
 }
 
 class _PhoneNumberFieldState extends State<PhoneNumberField> {
-  Country _selectedCountry = kCountries.first; // Iran, by default
+  Country _selectedCountry = kCountries.first;
 
-  // Anchors the dropdown menu to the country chip specifically (not the
-  // whole field), so it opens right under the flag/dial-code, not the input.
+  late final TextEditingController _controller =
+      widget.controller ?? TextEditingController();
+
   final GlobalKey _countryButtonKey = GlobalKey();
+
+  @override
+  void dispose() {
+    if (widget.controller == null) _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickCountry() async {
     final buttonBox =
@@ -55,14 +61,11 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.border),
       ),
-      // Small, fixed-ish footprint — list scrolls internally past this.
       constraints: const BoxConstraints(maxHeight: 260, minWidth: 210),
       items: kCountries
           .map((country) => PopupMenuItem<Country>(
                 value: country,
                 height: 42,
-                // Own RTL scope: this menu renders in the Overlay, above
-                // LoginScreen's local Directionality, so it needs its own.
                 child: Directionality(
                   textDirection: TextDirection.rtl,
                   child: Row(
@@ -100,6 +103,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
 
     if (picked != null) {
       setState(() => _selectedCountry = picked);
+      widget.onCountryChanged?.call(picked);
     }
   }
 
@@ -108,27 +112,25 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: TextField(
+        controller: _controller,
         keyboardType: TextInputType.phone,
         textInputAction: TextInputAction.done,
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.left,
-        // Fixes hint/typed text not sitting on the same vertical center as
-        // the (taller) country chip prefix.
         textAlignVertical: TextAlignVertical.center,
+        // Auto-format: insert spaces after 3rd and 6th digit
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          _PhoneFormatter(),
+        ],
         style: const TextStyle(
           fontFamily: 'Vazirmatn',
           fontSize: 14,
           color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
-          // Fixed on purpose — does NOT change based on the selected country
-          // code. The app currently only launches in Iran, so a constant,
-          // Iran-shaped example is clearer than trying to keep a per-country
-          // example number in sync with the digit count of ~70 countries.
           hintText: '912 123 4567',
           hintTextDirection: TextDirection.ltr,
-          // Lighter than the field's typed-text color on purpose — a hint
-          // should read as a placeholder, not as if a number is already there.
           hintStyle: TextStyle(
             fontFamily: 'Vazirmatn',
             fontSize: 13,
@@ -148,7 +150,47 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
   }
 }
 
-// ── Country code chip (prefix) ────────────────────────────────────────────────
+// ── Phone formatter ────────────────────────────────────────────────────────────
+// Formats up to 10 digits as:  XXX XXX XXXX
+// (space after digit 3, space after digit 6)
+
+class _PhoneFormatter extends TextInputFormatter {
+  static const _maxFormatted = 10; // ≤10 digits → format with spaces
+  static const _maxAllowed = 15; // hard cap (ITU-T E.164)
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+
+    // Hard cap at 15
+    final capped =
+        digits.length > _maxAllowed ? digits.substring(0, _maxAllowed) : digits;
+
+    String formatted;
+    if (capped.length <= _maxFormatted) {
+      // ≤10 digits → XXX XXX XXXX
+      final buffer = StringBuffer();
+      for (int i = 0; i < capped.length; i++) {
+        if (i == 3 || i == 6) buffer.write(' ');
+        buffer.write(capped[i]);
+      }
+      formatted = buffer.toString();
+    } else {
+      // >10 digits → no spaces, raw digits so user sees something is off
+      formatted = capped;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// ── Country code chip ─────────────────────────────────────────────────────────
 
 class _CountryCodeButton extends StatelessWidget {
   final Country country;

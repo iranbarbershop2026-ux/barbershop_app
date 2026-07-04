@@ -5,20 +5,6 @@ import '../../core/theme/app_theme.dart';
 import 'widgets/barber_login_tab.dart';
 import 'widgets/customer_login_tab.dart';
 
-// ── Login Screen ──────────────────────────────────────────────────────────────
-// Entry point for user authentication — two tabs: آرایشگاه · مشتری
-//
-// ── Layout ───────────────────────────────────────────────────────────────────
-//   Top section    : animated BARBER brand (Expanded — fills available space)
-//   Bottom section : tab bar + form fields (pinned to bottom)
-//   Tablet         : centred column, max-width 480px
-//
-// ── Micro interactions ────────────────────────────────────────────────────────
-//   1. BARBER letters stagger in — each slides up + fades (80ms delay/letter)
-//   2. Gold divider extends from 0 → 36px after last letter settles
-//   3. Subtitle fades in after divider completes
-//   All three play once on mount; screen stays static thereafter.
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -29,35 +15,41 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   int _selectedTab = 0;
 
+  // Controller اینجا زندگی می‌کنه — با جابجایی تب‌ها از بین نمیره
+  final TextEditingController _customerPhoneController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _customerPhoneController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // TODO: move this to MaterialApp (e.g. via locale: Locale('fa') +
-    // flutter_localizations) so the whole app is RTL, not just this screen.
     return Directionality(
       textDirection: TextDirection.rtl,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: AppTheme.systemOverlay,
         child: Scaffold(
           backgroundColor: AppColors.bg,
-          // Let keyboard push content: fields stay accessible when keyboard opens
           resizeToAvoidBottomInset: true,
           body: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                final h = constraints.maxHeight;
-                final isTablet = w >= 600;
-                final hPad = isTablet ? 64.0 : 24.0;
+                final maxWidth = constraints.maxWidth;
+                final maxHeight = constraints.maxHeight;
+                final isTablet = maxWidth >= 600;
+                final horizontalPadding = isTablet ? 64.0 : 24.0;
 
-                // ── Form section (tab bar + content) ───────────────────────
                 final formSection = _FormSection(
                   selectedTab: _selectedTab,
-                  onTabSelect: (i) => setState(() => _selectedTab = i),
-                  hPad: hPad,
+                  onTabSelect: (index) => setState(() => _selectedTab = index),
+                  hPad: horizontalPadding,
                   isTablet: isTablet,
+                  customerPhoneController: _customerPhoneController,
                 );
 
-                // ── Branding section (animated header) ──────────────────────
                 Widget branding = const Center(child: _AnimatedHeader());
                 if (isTablet) {
                   branding = Center(
@@ -68,23 +60,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 }
 
-                // ── Tall screen: fixed layout ───────────────────────────────
-                // Branding fills all space above the form — bottom third is form.
-                if (h > 500) {
+                if (maxHeight > 500) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Top: brand (takes whatever space the form doesn't need)
                       Expanded(child: branding),
-                      // Bottom: tab bar + form fields
                       formSection,
                     ],
                   );
                 }
 
-                // ── Short screen: scroll fallback ───────────────────────────
                 Widget scrollContent = SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(hPad, 36, hPad, 32),
+                  padding: EdgeInsets.fromLTRB(
+                      horizontalPadding, 36, horizontalPadding, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -92,10 +80,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 32),
                       _LoginTabBar(
                         selected: _selectedTab,
-                        onSelect: (i) => setState(() => _selectedTab = i),
+                        onSelect: (index) =>
+                            setState(() => _selectedTab = index),
                       ),
                       const SizedBox(height: 20),
-                      _tabContent,
+                      _AuthTabContent(
+                        selectedTab: _selectedTab,
+                        customerPhoneController: _customerPhoneController,
+                      ),
                     ],
                   ),
                 );
@@ -117,24 +109,23 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  Widget get _tabContent => _AuthTabContent(selectedTab: _selectedTab);
 }
 
-// ── Form Section ──────────────────────────────────────────────────────────────
-// Tab bar + animated content. Pinned to the bottom of the screen.
+// ── Form section ──────────────────────────────────────────────────────────────
 
 class _FormSection extends StatelessWidget {
   final int selectedTab;
   final ValueChanged<int> onTabSelect;
   final double hPad;
   final bool isTablet;
+  final TextEditingController customerPhoneController;
 
   const _FormSection({
     required this.selectedTab,
     required this.onTabSelect,
     required this.hPad,
     required this.isTablet,
+    required this.customerPhoneController,
   });
 
   @override
@@ -146,7 +137,10 @@ class _FormSection extends StatelessWidget {
         children: [
           _LoginTabBar(selected: selectedTab, onSelect: onTabSelect),
           const SizedBox(height: 20),
-          _AuthTabContent(selectedTab: selectedTab),
+          _AuthTabContent(
+            selectedTab: selectedTab,
+            customerPhoneController: customerPhoneController,
+          ),
         ],
       ),
     );
@@ -164,37 +158,32 @@ class _FormSection extends StatelessWidget {
   }
 }
 
-// ── Auth Tab Content ───────────────────────────────────────────────────────────
-// Cross-fades between BarberLoginTab and CustomerLoginTab.
-//
-// The barbershop tab has more fields than the customer tab, so switching
-// naively made this block shrink/grow — which pushed the branding section
-// above it (Expanded) up or down, making the whole screen jump.
-//
-// Fix: an invisible IndexedStack lays out BOTH tabs purely to measure them.
-// IndexedStack always sizes itself to its *largest* child, regardless of
-// which index is selected — so this widget's height is pinned to whichever
-// tab is taller, and never changes when switching. The real, visible content
-// sits on top via Positioned.fill and animates normally.
+// ── Tab content ───────────────────────────────────────────────────────────────
 
 class _AuthTabContent extends StatelessWidget {
   final int selectedTab;
+  final TextEditingController customerPhoneController;
 
-  const _AuthTabContent({required this.selectedTab});
+  const _AuthTabContent({
+    required this.selectedTab,
+    required this.customerPhoneController,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
-        // Sizing-only: never painted, never hit-tested — just reserves space.
-        const Visibility(
+        Visibility(
           visible: false,
           maintainSize: true,
           maintainAnimation: true,
           maintainState: true,
           child: IndexedStack(
-            children: [BarberLoginTab(), CustomerLoginTab()],
+            children: [
+              BarberLoginTab(),
+              CustomerLoginTab(phoneController: customerPhoneController),
+            ],
           ),
         ),
         Positioned.fill(
@@ -202,9 +191,6 @@ class _AuthTabContent extends StatelessWidget {
             duration: const Duration(milliseconds: 280),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
-            // Keep both the outgoing and incoming child top-aligned within
-            // the reserved space (default AnimatedSwitcher alignment is
-            // centered, which would visually re-center shorter content).
             layoutBuilder: (currentChild, previousChildren) => Stack(
               alignment: Alignment.topCenter,
               children: [
@@ -223,8 +209,11 @@ class _AuthTabContent extends StatelessWidget {
               ),
             ),
             child: selectedTab == 0
-                ? const BarberLoginTab(key: ValueKey('barber'))
-                : const CustomerLoginTab(key: ValueKey('customer')),
+                ? CustomerLoginTab(
+                    key: const ValueKey('customer'),
+                    phoneController: customerPhoneController,
+                  )
+                : const BarberLoginTab(key: ValueKey('barber')),
           ),
         ),
       ],
@@ -232,11 +221,7 @@ class _AuthTabContent extends StatelessWidget {
   }
 }
 
-// ── Animated Header ───────────────────────────────────────────────────────────
-// Three-phase entry animation, plays once on mount:
-//   Phase 1 (0–65%): letters stagger in — slide up + fade, 80ms between each
-//   Phase 2 (58–78%): gold divider extends from 0 to 36px
-//   Phase 3 (68–90%): subtitle fades in
+// ── Animated header ───────────────────────────────────────────────────────────
 
 class _AnimatedHeader extends StatefulWidget {
   const _AnimatedHeader();
@@ -250,15 +235,9 @@ class _AnimatedHeaderState extends State<_AnimatedHeader>
   static const _letters = ['R', 'E', 'B', 'R', 'A', 'B'];
 
   late final AnimationController _ctrl;
-
-  // Per-letter fade (0→1) and slide (Offset(0, 0.5) → zero)
   late final List<Animation<double>> _letterFades;
   late final List<Animation<Offset>> _letterSlides;
-
-  // Divider width as a fraction (0→1), scaled to 36px in build
   late final Animation<double> _dividerFrac;
-
-  // Subtitle opacity
   late final Animation<double> _subtitleOpacity;
 
   @override
@@ -270,7 +249,6 @@ class _AnimatedHeaderState extends State<_AnimatedHeader>
       duration: const Duration(milliseconds: 1100),
     );
 
-    // Each letter starts 8% (≈88ms) after the previous
     _letterFades = List.generate(_letters.length, (i) {
       final start = i * 0.08;
       final end = (start + 0.24).clamp(0.0, 1.0);
@@ -283,24 +261,20 @@ class _AnimatedHeaderState extends State<_AnimatedHeader>
     _letterSlides = List.generate(_letters.length, (i) {
       final start = i * 0.08;
       final end = (start + 0.30).clamp(0.0, 1.0);
-      return Tween<Offset>(
-        begin: const Offset(0, 0.55),
-        end: Offset.zero,
-      ).animate(
+      return Tween<Offset>(begin: const Offset(0, 0.55), end: Offset.zero)
+          .animate(
         CurvedAnimation(
             parent: _ctrl,
             curve: Interval(start, end, curve: Curves.easeOutCubic)),
       );
     });
 
-    // Divider appears after last letter settles (~58%)
     _dividerFrac = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
           parent: _ctrl,
           curve: const Interval(0.58, 0.78, curve: Curves.easeOutCubic)),
     );
 
-    // Subtitle fades after divider
     _subtitleOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
           parent: _ctrl,
@@ -321,37 +295,34 @@ class _AnimatedHeaderState extends State<_AnimatedHeader>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── Staggered BARBER letters ─────────────────────────────────────
         Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-              _letters.length,
-              (i) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3.5),
-                    child: FadeTransition(
-                      opacity: _letterFades[i],
-                      child: SlideTransition(
-                        position: _letterSlides[i],
-                        child: Text(
-                          _letters[i],
-                          style: const TextStyle(
-                            fontFamily: 'Vazirmatn',
-                            fontSize: 38,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.gold,
-                            letterSpacing: 0,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
+            _letters.length,
+            (i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3.5),
+              child: FadeTransition(
+                opacity: _letterFades[i],
+                child: SlideTransition(
+                  position: _letterSlides[i],
+                  child: Text(
+                    _letters[i],
+                    style: const TextStyle(
+                      fontFamily: 'Vazirmatn',
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.gold,
+                      letterSpacing: 0,
+                      height: 1.1,
                     ),
-                  )),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-
         const SizedBox(height: 14),
-
-        // ── Extending gold divider ───────────────────────────────────────
         AnimatedBuilder(
           animation: _dividerFrac,
           builder: (_, __) => Container(
@@ -364,10 +335,7 @@ class _AnimatedHeaderState extends State<_AnimatedHeader>
             ),
           ),
         ),
-
         const SizedBox(height: 14),
-
-        // ── Subtitle ─────────────────────────────────────────────────────
         FadeTransition(
           opacity: _subtitleOpacity,
           child: const Text(
@@ -387,13 +355,13 @@ class _AnimatedHeaderState extends State<_AnimatedHeader>
   }
 }
 
-// ── Tab Bar ───────────────────────────────────────────────────────────────────
+// ── Tab bar ───────────────────────────────────────────────────────────────────
 
 class _LoginTabBar extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onSelect;
 
-  static const _labels = ['ورود به عنوان آرایشگاه', 'ورود به عنوان مشتری'];
+  static const _labels = ['ورود به عنوان مشتری', 'ورود به عنوان آرایشگاه'];
 
   const _LoginTabBar({required this.selected, required this.onSelect});
 
