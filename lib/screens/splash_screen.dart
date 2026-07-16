@@ -103,48 +103,65 @@ class _SplashScreenState extends State<SplashScreen>
         builder: (context, constraints) {
           // ── Breakpoints ─────────────────────────────────────────────────────
           final w = constraints.maxWidth;
-          final isWide   = w >= 1024;
+          final isWide = w >= 1024;
           final isTablet = w >= 600;
-          final isSmall  = w < 360;
+          final isSmall = w < 360;
 
           // ── Size tokens — all proportionally matched per breakpoint ─────────
           // Logo circle diameter
-          final double logoSize = isWide   ? 180.0
-              : isTablet ? 150.0
-              : isSmall  ?  80.0
-              :             110.0;
+          final double logoSize = isWide
+              ? 180.0
+              : isTablet
+                  ? 150.0
+                  : isSmall
+                      ? 80.0
+                      : 110.0;
 
           // Icon inside logo circle (always 46% of circle)
           final double iconSize = logoSize * 0.46;
 
           // Title "Barber Shop"
-          final double titleSize = isWide   ? 38.0
-              : isTablet ? 30.0
-              : isSmall  ? 20.0
-              :             25.0;
+          final double titleSize = isWide
+              ? 38.0
+              : isTablet
+                  ? 30.0
+                  : isSmall
+                      ? 20.0
+                      : 25.0;
 
           // Subtitle "آرایشگاه آنلاین"
-          final double subSize = isWide   ? 17.0
-              : isTablet ? 15.0
-              : isSmall  ? 11.0
-              :             13.0;
+          final double subSize = isWide
+              ? 17.0
+              : isTablet
+                  ? 15.0
+                  : isSmall
+                      ? 11.0
+                      : 13.0;
 
           // Letter spacing scales with title size to stay proportional
-          final double letterSpacing = isWide   ? 14.0
-              : isTablet ? 11.0
-              : isSmall  ?  5.0
-              :              8.0;
+          final double letterSpacing = isWide
+              ? 14.0
+              : isTablet
+                  ? 11.0
+                  : isSmall
+                      ? 5.0
+                      : 8.0;
 
           // Gap between logo and title
-          final double logoTitleGap = isWide   ? 52.0
-              : isTablet ? 40.0
-              : isSmall  ? 20.0
-              :             28.0;
+          final double logoTitleGap = isWide
+              ? 52.0
+              : isTablet
+                  ? 40.0
+                  : isSmall
+                      ? 20.0
+                      : 28.0;
 
           // Gap between title and subtitle
-          final double titleSubGap = isWide   ? 14.0
-              : isTablet ? 12.0
-              :              8.0;
+          final double titleSubGap = isWide
+              ? 14.0
+              : isTablet
+                  ? 12.0
+                  : 8.0;
 
           // ── Content column — constrained on wide screens ────────────────────
           final content = Column(
@@ -238,17 +255,17 @@ class _LogoCircle extends StatelessWidget {
           radius: 1.1,
         ),
         border: Border.all(
-          color: AppColors.gold.withOpacity(0.45),
+          color: AppColors.gold.withValues(alpha: 0.45),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.gold.withOpacity(0.12),
+            color: AppColors.gold.withValues(alpha: 0.12),
             blurRadius: 24,
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.55),
+            color: Colors.black.withValues(alpha: 0.55),
             blurRadius: 20,
             spreadRadius: -4,
             offset: const Offset(0, 8),
@@ -276,7 +293,7 @@ class _ScissorsPainter extends CustomPainter {
   void paint(Canvas canvas, Size canvasSize) {
     final cx = canvasSize.width / 2;
     final cy = canvasSize.height / 2;
-    final r  = size / 2;
+    final r = size / 2;
 
     // Stroke width scales with icon size for visual consistency
     final strokeW = (size * 0.042).clamp(1.8, 3.0);

@@ -1,4 +1,4 @@
-import 'package:barbershop_app/screens/customer_home_screen.dart';
+import 'package:barbershop_app/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,7 +23,7 @@ class BarberApp extends StatelessWidget {
       title: 'BarberShop',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: const CustomerHomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }

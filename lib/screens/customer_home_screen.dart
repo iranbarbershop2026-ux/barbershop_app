@@ -14,7 +14,6 @@ class CustomerHomeScreen extends StatefulWidget {
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
-  int _navIndex = 2;
   int _filterIndex = 0;
   String _city = 'استان تهران';
 
@@ -353,8 +352,9 @@ class _Chip extends StatelessWidget {
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color:
-                active ? AppColors.gold.withOpacity(0.12) : AppColors.surface,
+            color: active
+                ? AppColors.gold.withValues(alpha: 0.12)
+                : AppColors.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
                 color: active ? AppColors.gold : AppColors.border, width: 1.2),
@@ -475,7 +475,7 @@ class _ShopCardState extends State<_ShopCard> {
             // No border — depth comes from shadow alone
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.55),
+                color: Colors.black.withValues(alpha: 0.55),
                 blurRadius: 18,
                 spreadRadius: 0,
                 offset: const Offset(0, 6),
@@ -524,8 +524,8 @@ class _ShopCardState extends State<_ShopCard> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        AppColors.surface.withOpacity(0.15),
-                        AppColors.surface.withOpacity(0.80),
+                        AppColors.surface.withValues(alpha: 0.15),
+                        AppColors.surface.withValues(alpha: 0.80),
                         AppColors.surface,
                       ],
                       stops: const [0.35, 0.58, 0.76, 1.0],
@@ -563,7 +563,7 @@ class _ShopCardState extends State<_ShopCard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.bg.withOpacity(0.70),
+                    color: AppColors.bg.withValues(alpha: 0.70),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppColors.borderGold),
                   ),
@@ -661,7 +661,7 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: AppColors.gold.withOpacity(0.7)),
+          Icon(icon, size: 12, color: AppColors.gold.withValues(alpha: 0.7)),
           const SizedBox(width: 4),
           Text(label,
               style: const TextStyle(

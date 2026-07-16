@@ -425,9 +425,10 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0574B).withOpacity(0.10),
+        color: const Color(0xFFE0574B).withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0574B).withOpacity(0.35)),
+        border:
+            Border.all(color: const Color(0xFFE0574B).withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -635,12 +636,12 @@ class _KeypadKeyState extends State<_KeypadKey> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _pressed
-                ? AppColors.gold.withOpacity(0.10)
+                ? AppColors.gold.withValues(alpha: 0.10)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: _pressed
-                  ? AppColors.gold.withOpacity(0.55)
+                  ? AppColors.gold.withValues(alpha: 0.55)
                   : Colors.transparent,
               width: 1.4,
             ),

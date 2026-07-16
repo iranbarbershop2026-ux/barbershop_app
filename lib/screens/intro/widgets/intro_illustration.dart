@@ -41,13 +41,13 @@ class IntroIllustration extends StatelessWidget {
           color: const Color(0xFF141414),
           // Thin gold ring
           border: Border.all(
-            color: AppColors.gold.withOpacity(0.32),
+            color: AppColors.gold.withValues(alpha: 0.32),
             width: 1.2,
           ),
           // Ambient gold glow
           boxShadow: [
             BoxShadow(
-              color: AppColors.gold.withOpacity(0.07),
+              color: AppColors.gold.withValues(alpha: 0.07),
               blurRadius: 28,
               spreadRadius: 4,
             ),

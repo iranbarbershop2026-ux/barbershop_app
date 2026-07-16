@@ -181,7 +181,7 @@ class _AuthTabContent extends StatelessWidget {
           maintainState: true,
           child: IndexedStack(
             children: [
-              BarberLoginTab(),
+              const BarberLoginTab(),
               CustomerLoginTab(phoneController: customerPhoneController),
             ],
           ),
@@ -408,11 +408,12 @@ class _Tab extends StatelessWidget {
           curve: Curves.easeInOutCubic,
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.gold.withOpacity(0.10)
+                ? AppColors.gold.withValues(alpha: 0.10)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: isActive
-                ? Border.all(color: AppColors.gold.withOpacity(0.28), width: 1)
+                ? Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.28), width: 1)
                 : null,
           ),
           child: Center(

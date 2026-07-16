@@ -135,7 +135,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
             fontFamily: 'Vazirmatn',
             fontSize: 13,
             fontWeight: FontWeight.w300,
-            color: AppColors.textHint.withOpacity(0.55),
+            color: AppColors.textHint.withValues(alpha: 0.55),
           ),
           prefixIcon: _CountryCodeButton(
             key: _countryButtonKey,
