@@ -226,12 +226,11 @@ class _ImageSlider extends StatelessWidget {
                   ),
                 ),
               );
-              // فقط index 0 درون Hero — تا shared-element درست کار کند
               return i == 0 ? Hero(tag: heroTag, child: img) : img;
             },
           ),
 
-          // gradient بالا
+          // ── gradient بالا ─────────────────────────────────────────────
           Positioned(
             top: 0,
             left: 0,
@@ -244,14 +243,37 @@ class _ImageSlider extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.black.withValues(alpha: 0.65),
-                    Colors.transparent
+                    Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
 
-          // gradient پایین — fade به bg
+          // ── soft black fade overlay (covers ~25% bottom of image) ─────
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: height * 0.25,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.00), // شروع کاملاً شفاف
+                    Colors.black.withValues(alpha: 0.20), // فید خیلی نرم
+                    Colors.black.withValues(alpha: 0.35), // تاریکی ملایم
+                    Colors.black.withValues(alpha: 0.55), // پایین کمی تیره‌تر
+                  ],
+                  stops: const [0.0, 0.40, 0.70, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // ── gradient پایین — fade به bg ───────────────────────────────
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -269,13 +291,13 @@ class _ImageSlider extends StatelessWidget {
             ),
           ),
 
-          // ── دکمه برگشت سمت چپ + «سالن ویژه» سمت راست ───────────────
+          // ── دکمه برگشت + VIP badge ───────────────────────────────────
           Positioned(
             top: topPad + 8,
             left: 16,
             right: 16,
             child: Directionality(
-              textDirection: TextDirection.ltr, // چون چپ/راست معنایی است
+              textDirection: TextDirection.ltr,
               child: Row(
                 children: [
                   _GlassButton(
@@ -306,7 +328,7 @@ class _ImageSlider extends StatelessWidget {
             ),
           ),
 
-          // dot indicators — فقط اگه بیشتر از یک عکس داریم
+          // ── dot indicators ─────────────────────────────────────────────
           if (images.length > 1)
             Positioned(
               bottom: 16,

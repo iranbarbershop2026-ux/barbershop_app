@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/theme/app_theme.dart';
+import 'barbershop_detail_screen.dart';
 
 // ── Customer Home Screen ───────────────────────────────────────────────────────
-// Design phase — all data is static mock, no network calls.
+// Hero tag روی تصویر هر کارت: 'shop-image-${shop.name}'
+// همین tag باید دقیقاً در BarbershopDetailScreen روی image slider استفاده بشه
+// تا Flutter انیمیشن shared-element (Hero) رو اجرا کنه.
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -209,7 +212,6 @@ class _TopBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: Row(children: [
-        // Avatar
         Container(
           width: 42,
           height: 42,
@@ -239,7 +241,6 @@ class _TopBar extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        // City selector
         GestureDetector(
           onTap: onCityTap,
           behavior: HitTestBehavior.opaque,
@@ -287,7 +288,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(right: 20, left: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -311,7 +312,7 @@ class _SectionHeader extends StatelessWidget {
       );
 }
 
-// ── Filter chips row ──────────────────────────────────────────────────────────
+// ── Filter chips ──────────────────────────────────────────────────────────────
 
 class _FilterRow extends StatelessWidget {
   final List<String> filters;
@@ -375,7 +376,7 @@ class _Chip extends StatelessWidget {
       );
 }
 
-// ── Animated shop list ────────────────────────────────────────────────────────
+// ── Shop list ─────────────────────────────────────────────────────────────────
 
 class _ShopList extends StatelessWidget {
   final List<_Shop> shops;
@@ -456,6 +457,45 @@ class _ShopCard extends StatefulWidget {
 class _ShopCardState extends State<_ShopCard> {
   bool _pressed = false;
 
+  void _navigateToDetail(BuildContext context) {
+    final s = widget.shop;
+    Navigator.push(
+      context,
+      PageRouteBuilder<void>(
+        pageBuilder: (_, __, ___) => BarbershopDetailScreen(
+          shop: mockShopFromCard(
+            name: s.name,
+            address: s.address,
+            rating: s.rating,
+            reviews: s.reviews,
+            distance: s.distance,
+            hours: s.hours,
+            isVip: s.isVip,
+            price: s.price,
+            image: s.image,
+          ),
+          // Hero tag منحصر به فرد — باید با tag توی _ImageSlider یکی باشه
+          heroTag: 'shop-image-${s.name}',
+        ),
+        // انیمیشن Hero خودش route transition رو می‌سازه؛
+        // ما فقط یه fade خیلی ملایم برای محتوای زیر Hero می‌دیم.
+        transitionsBuilder: (_, animation, secondaryAnimation, child) {
+          final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
+          final exitScale = Tween<double>(begin: 1.0, end: 0.96).animate(
+            CurvedAnimation(
+                parent: secondaryAnimation, curve: Curves.easeInCubic),
+          );
+          return ScaleTransition(
+            scale: exitScale,
+            child: FadeTransition(opacity: fade, child: child),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 380),
+        reverseTransitionDuration: const Duration(milliseconds: 320),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = widget.shop;
@@ -463,7 +503,7 @@ class _ShopCardState extends State<_ShopCard> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {/* TODO: navigate to detail */},
+      onTap: () => _navigateToDetail(context),
       child: AnimatedScale(
         scale: _pressed ? 0.972 : 1.0,
         duration: const Duration(milliseconds: 120),
@@ -472,7 +512,6 @@ class _ShopCardState extends State<_ShopCard> {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            // No border — depth comes from shadow alone
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.55),
@@ -483,39 +522,40 @@ class _ShopCardState extends State<_ShopCard> {
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          // ── Single Stack: caption sits ON TOP of image ───────────────────
-          // This is the only way to get a true seamless fade — when image and
-          // caption are siblings in a Column there is always a hard pixel
-          // boundary between them regardless of gradient settings.
           child: Stack(
             children: [
-              // Full-card image
+              // ── تصویر اصلی با Hero ─────────────────────────────────────
+              // Hero tag = 'shop-image-${s.name}'
+              // Flutter این تصویر رو بین این صفحه و detail بی‌وقفه جابه‌جا می‌کنه.
               SizedBox(
                 width: double.infinity,
                 height: 220,
-                child: Image.asset(
-                  s.image,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: AppColors.surfaceElevated,
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.storefront_outlined,
-                              color: AppColors.textHint, size: 32),
-                          const SizedBox(height: 6),
-                          Text(s.name.split(' ').first,
-                              style: const TextStyle(
-                                  fontFamily: 'Vazirmatn',
-                                  fontSize: 11,
-                                  color: AppColors.textHint)),
-                        ]),
+                child: Hero(
+                  tag: 'shop-image-${s.name}',
+                  // flightShuttleBuilder نیاز نداریم — پیش‌فرض Flutter کافیه
+                  child: Image.asset(
+                    s.image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.surfaceElevated,
+                      child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.storefront_outlined,
+                                color: AppColors.textHint, size: 32),
+                            const SizedBox(height: 6),
+                            Text(s.name.split(' ').first,
+                                style: const TextStyle(
+                                    fontFamily: 'Vazirmatn',
+                                    fontSize: 11,
+                                    color: AppColors.textHint)),
+                          ]),
+                    ),
                   ),
                 ),
               ),
 
-              // Gradient overlay — transparent at top, surface-color at bottom.
-              // Covers the bottom 55% of the card so caption reads perfectly.
+              // ── Gradient overlay ────────────────────────────────────────
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -524,17 +564,19 @@ class _ShopCardState extends State<_ShopCard> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        AppColors.surface.withValues(alpha: 0.15),
-                        AppColors.surface.withValues(alpha: 0.80),
-                        AppColors.surface,
+                        Colors.black.withValues(alpha: 0.28),
+                        Colors.black.withValues(alpha: 0.64),
+                        Colors.black.withValues(alpha: 0.88),
+                        Colors.black.withValues(alpha: 0.93),
+                        Colors.black.withValues(alpha: 0.98),
                       ],
-                      stops: const [0.35, 0.58, 0.76, 1.0],
+                      stops: const [0.0, 0.26, 0.50, 0.72, 0.88, 1.0],
                     ),
                   ),
                 ),
               ),
 
-              // VIP badge — top-left
+              // ── VIP badge ───────────────────────────────────────────────
               if (s.isVip)
                 Positioned(
                   top: 12,
@@ -555,7 +597,7 @@ class _ShopCardState extends State<_ShopCard> {
                   ),
                 ),
 
-              // Rating badge — top-right
+              // ── Rating badge ─────────────────────────────────────────────
               Positioned(
                 top: 12,
                 right: 12,
@@ -581,7 +623,7 @@ class _ShopCardState extends State<_ShopCard> {
                 ),
               ),
 
-              // Caption — overlaid at bottom of the stack
+              // ── Caption ──────────────────────────────────────────────────
               Positioned(
                 left: 0,
                 right: 0,
@@ -650,8 +692,6 @@ class _InfoRow extends StatelessWidget {
       );
 }
 
-// ── Stat item (inside card footer) ───────────────────────────────────────────
-
 class _StatItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -680,15 +720,10 @@ const _statDivider = Padding(
       child: VerticalDivider(color: AppColors.border, thickness: 1, width: 1)),
 );
 
-/// Converts a double km value to a Persian-readable string.
-/// Examples: 1.2 → "۱.۲ کیلومتر", 0.8 → "۸۰۰ متر"
 String _kmFa(double km) {
-  if (km < 1.0) {
-    return '${(km * 1000).round()} متر';
-  }
-  final formatted =
-      km == km.roundToDouble() ? '${km.round()}' : km.toStringAsFixed(1);
-  return '$formatted کیلومتر';
+  if (km < 1.0) return '${(km * 1000).round()} متر';
+  final f = km == km.roundToDouble() ? '${km.round()}' : km.toStringAsFixed(1);
+  return '$f کیلومتر';
 }
 
 // ── City picker sheet ─────────────────────────────────────────────────────────
@@ -706,10 +741,8 @@ class _CitySheet extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        // Constrain height so it never overflows on small screens
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.6,
-        ),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 10),
           Container(
