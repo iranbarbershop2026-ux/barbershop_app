@@ -1,3 +1,4 @@
+import 'package:barbershop_app/screens/booking/booking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1229,7 +1230,14 @@ class _BottomBar extends StatelessWidget {
               label: 'رزرو نوبت',
               icon: Icons.calendar_month_rounded,
               outlined: false,
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const BookingScreen(),
+                  ),
+                );
+              },
             ),
           ),
         ],
