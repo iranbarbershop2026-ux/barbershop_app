@@ -1,3 +1,4 @@
+import 'package:barbershop_app/screens/booking/receipt_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 
@@ -179,7 +180,11 @@ class _BookingScreenState extends State<BookingScreen> {
                     const SizedBox(height: 28),
 
                     // ── ۷. پرداخت ─────────────────────────────────────────
-                    _PayButton(enabled: _canPay, onTap: () {}),
+                    _PayButton(
+                      enabled: _canPay,
+                      onTap: () {},
+                      isLoading: false,
+                    ),
                   ],
                 ),
               ),
@@ -969,12 +974,17 @@ class _NotesField extends StatelessWidget {
       );
 }
 
-// ── Pay button ────────────────────────────────────────────────────────────────
+// ── Pay button — با پشتیبانی از حالت loading ─────────────────────────────────
 
 class _PayButton extends StatefulWidget {
   final bool enabled;
+  final bool isLoading;
   final VoidCallback onTap;
-  const _PayButton({required this.enabled, required this.onTap});
+  const _PayButton({
+    required this.enabled,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   @override
   State<_PayButton> createState() => _PayButtonState();
@@ -985,9 +995,29 @@ class _PayButtonState extends State<_PayButton> {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: widget.enabled ? widget.onTap : null,
-        onTapDown:
-            widget.enabled ? (_) => setState(() => _pressed = true) : null,
+        onTap: () {
+          // Payment is disabled, but for testing, navigate to the receipt screen with a failed booking result.
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ReceiptScreen(
+                result: BookingResult(
+                    isSuccess: false,
+                    serviceLabel: 'کوتاهی مو',
+                    dateLabel: 'سه شنبه ۲۵ فروردین ۱۴۰۲',
+                    timeSlot: '۱۶:۳۰ - ۱۷:۰۰',
+                    barberName: 'علی رضایی',
+                    branchName: 'نیاوران (شعبه ۱)',
+                    salonName: 'آرایشگاه مردانه آریا',
+                    bookingCode: 'B-E247676',
+                    totalPrice: 500000),
+              ),
+            ),
+          );
+        },
+        onTapDown: widget.enabled && !widget.isLoading
+            ? (_) => setState(() => _pressed = true)
+            : null,
         onTapUp: (_) => setState(() => _pressed = false),
         onTapCancel: () => setState(() => _pressed = false),
         child: AnimatedScale(
@@ -1003,17 +1033,34 @@ class _PayButtonState extends State<_PayButton> {
                 color: _pressed ? AppColors.goldDim : AppColors.gold,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.payment_rounded, size: 17, color: AppColors.bg),
-                  SizedBox(width: 8),
-                  Text('ادامه و پرداخت',
-                      style: TextStyle(
-                          fontFamily: 'Vazirmatn',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.bg)),
-                ]),
+              child: Center(
+                child: widget.isLoading
+                    // حالت loading — spinner جای متن
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.bg),
+                        ),
+                      )
+                    : const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.payment_rounded,
+                              size: 17, color: AppColors.bg),
+                          SizedBox(width: 8),
+                          Text(
+                            'ادامه و پرداخت',
+                            style: TextStyle(
+                                fontFamily: 'Vazirmatn',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.bg),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ),
